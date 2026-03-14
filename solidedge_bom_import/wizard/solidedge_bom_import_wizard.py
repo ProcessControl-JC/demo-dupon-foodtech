@@ -382,14 +382,20 @@ class SolidEdgeBomImportWizard(models.TransientModel):
             "type": "consu",
             "categ_id": categ_id,
             "uom_id": uom.id,
-            "uom_po_id": uom.id,
         }
-        if filename:
-            vals["x_solidedge_file"] = filename
-        if asunto and asunto != "-":
-            vals["x_solidedge_asunto"] = asunto
 
         product = Product.create(vals)
+        # Set uom_po_id on the template (field lives on product.template, not product.product)
+        product.product_tmpl_id.write({"uom_po_id": uom.id})
+        # Set custom SolidEdge fields if they exist on the template
+        tmpl_fields = self.env["product.template"]._fields
+        tmpl_vals = {}
+        if filename and "x_solidedge_file" in tmpl_fields:
+            tmpl_vals["x_solidedge_file"] = filename
+        if asunto and asunto != "-" and "x_solidedge_asunto" in tmpl_fields:
+            tmpl_vals["x_solidedge_asunto"] = asunto
+        if tmpl_vals:
+            product.product_tmpl_id.write(tmpl_vals)
         return product, True
 
     def _ensure_buy_route(self, product):
@@ -601,5 +607,5 @@ class SolidEdgeBomImportWizard(models.TransientModel):
             "res_model": self._name,
             "res_id": self.id,
             "view_mode": "form",
-            "target": "new",
+            "target": "current",
         }
