@@ -385,8 +385,9 @@ class SolidEdgeBomImportWizard(models.TransientModel):
         }
 
         product = Product.create(vals)
-        # Set uom_po_id on the template (field lives on product.template, not product.product)
-        product.product_tmpl_id.write({"uom_po_id": uom.id})
+        # Set uom_po_id if the field exists (Odoo 16/17); removed in Odoo 19
+        if "uom_po_id" in self.env["product.template"]._fields:
+            product.product_tmpl_id.write({"uom_po_id": uom.id})
         # Set custom SolidEdge fields if they exist on the template
         tmpl_fields = self.env["product.template"]._fields
         tmpl_vals = {}

@@ -1,6 +1,6 @@
 {
     'name': 'SolidEdge BOM Import',
-    'version': '19.0.1.1.0',
+    'version': '19.0.1.2.0',
     'summary': 'Import multi-level Bills of Materials exported from Siemens SolidEdge',
     'description': """
         Wizard to import BOM CSV files exported from Siemens SolidEdge into
