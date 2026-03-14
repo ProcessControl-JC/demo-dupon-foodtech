@@ -4,7 +4,7 @@
     <menuitem
         id="menu_solidedge_bom_import"
         name="Import SolidEdge BOM"
-        parent="mrp.menu_mrp_operations_action"
+        parent="mrp.menu_mrp_root"
         action="action_solidedge_bom_import_wizard"
         sequence="100"
         groups="mrp.group_mrp_user"/>

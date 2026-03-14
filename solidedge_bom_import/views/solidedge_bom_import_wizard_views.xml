@@ -69,7 +69,7 @@
         <field name="name">Import SolidEdge BOM</field>
         <field name="res_model">solidedge.bom.import.wizard</field>
         <field name="view_mode">form</field>
-        <field name="target">new</field>
+        <field name="target">current</field>
     </record>
 
 </odoo>
