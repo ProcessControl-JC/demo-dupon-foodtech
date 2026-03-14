@@ -303,7 +303,7 @@ class SolidEdgeBomImportWizard(models.TransientModel):
                             )
                         # Add to parent BOM if not at level 1
                         if level > 1 and (level - 1) in stack:
-                            _, parent_bom = stack[level - 1]
+                            _parent_prod, parent_bom = stack[level - 1]
                             if parent_bom:
                                 qty = self._parse_qty(qty_raw, i, result)
                                 self._add_bom_line(parent_bom, product, qty, result)
@@ -337,7 +337,7 @@ class SolidEdgeBomImportWizard(models.TransientModel):
                     )
                     continue
 
-                _, parent_bom = stack[level - 1]
+                _parent_prod, parent_bom = stack[level - 1]
                 if parent_bom:
                     self._add_bom_line(parent_bom, product, qty, result)
 
