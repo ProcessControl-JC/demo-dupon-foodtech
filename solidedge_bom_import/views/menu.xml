@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <menuitem
+        id="menu_solidedge_bom_import"
+        name="Import SolidEdge BOM"
+        parent="mrp.menu_mrp_operations_action"
+        action="action_solidedge_bom_import_wizard"
+        sequence="100"
+        groups="mrp.group_mrp_user"/>
+
+</odoo>

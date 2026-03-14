@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_solidedge_bom_import_wizard_form" model="ir.ui.view">
+        <field name="name">solidedge.bom.import.wizard.form</field>
+        <field name="model">solidedge.bom.import.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Import SolidEdge BOM">
+
+                <!-- STEP 1: Upload -->
+                <group invisible="state != 'upload'">
+                    <group string="File">
+                        <field name="file_data" filename="filename" widget="binary"
+                               string="SolidEdge CSV File"/>
+                        <field name="filename" invisible="1"/>
+                    </group>
+                    <group string="Options">
+                        <field name="dry_run"/>
+                        <field name="overwrite"/>
+                    </group>
+                </group>
+
+                <!-- STEP 2: Preview -->
+                <group invisible="state != 'preview'">
+                    <field name="preview_html" widget="html" nolabel="1"
+                           readonly="1" colspan="2"/>
+                    <group string="Options (review before importing)">
+                        <field name="dry_run"/>
+                        <field name="overwrite"/>
+                    </group>
+                </group>
+
+                <!-- STEP 3: Done -->
+                <group invisible="state != 'done'">
+                    <field name="result_html" widget="html" nolabel="1"
+                           readonly="1" colspan="2"/>
+                </group>
+
+                <!-- Hidden state field -->
+                <field name="state" invisible="1"/>
+
+                <footer>
+                    <!-- Step 1 buttons -->
+                    <button name="action_parse_preview" type="object"
+                            string="Validate" class="btn-primary"
+                            invisible="state != 'upload'"/>
+
+                    <!-- Step 2 buttons -->
+                    <button name="action_import" type="object"
+                            string="Import" class="btn-primary"
+                            invisible="state != 'preview'"/>
+                    <button name="action_back" type="object"
+                            string="← Back" class="btn-secondary"
+                            invisible="state != 'preview'"/>
+
+                    <!-- Step 3 buttons -->
+                    <button name="action_back" type="object"
+                            string="Import another file" class="btn-secondary"
+                            invisible="state != 'done'"/>
+
+                    <button string="Close" class="btn-secondary" special="cancel"/>
+                </footer>
+
+            </form>
+        </field>
+    </record>
+
+    <record id="action_solidedge_bom_import_wizard" model="ir.actions.act_window">
+        <field name="name">Import SolidEdge BOM</field>
+        <field name="res_model">solidedge.bom.import.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+</odoo>

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+
+    <record id="product_categ_solidedge" model="product.category">
+        <field name="name">SolidEdge Imports</field>
+        <field name="parent_id" ref="product.product_category_all"/>
+    </record>
+
+</odoo>
