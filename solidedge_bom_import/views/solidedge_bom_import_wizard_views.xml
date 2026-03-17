@@ -7,6 +7,25 @@
         <field name="arch" type="xml">
             <form string="Import SolidEdge BOM">
 
+                <header>
+                    <button name="action_parse_preview" type="object"
+                            string="Validate" class="btn-primary"
+                            invisible="state != 'upload'"/>
+                    <button name="action_import" type="object"
+                            string="Import" class="btn-primary"
+                            invisible="state != 'preview'"/>
+                    <button name="action_back" type="object"
+                            string="← Back" class="btn-secondary"
+                            invisible="state != 'preview'"/>
+                    <button name="action_back" type="object"
+                            string="Import another file" class="btn-secondary"
+                            invisible="state != 'done'"/>
+                    <button string="Close" class="btn-secondary" special="cancel"
+                            invisible="state == 'done'"/>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="upload,preview,done"/>
+                </header>
+
                 <!-- STEP 1: Upload -->
                 <group invisible="state != 'upload'">
                     <group string="File">
@@ -39,27 +58,6 @@
                 <!-- Hidden state field -->
                 <field name="state" invisible="1"/>
 
-                <footer>
-                    <!-- Step 1 buttons -->
-                    <button name="action_parse_preview" type="object"
-                            string="Validate" class="btn-primary"
-                            invisible="state != 'upload'"/>
-
-                    <!-- Step 2 buttons -->
-                    <button name="action_import" type="object"
-                            string="Import" class="btn-primary"
-                            invisible="state != 'preview'"/>
-                    <button name="action_back" type="object"
-                            string="← Back" class="btn-secondary"
-                            invisible="state != 'preview'"/>
-
-                    <!-- Step 3 buttons -->
-                    <button name="action_back" type="object"
-                            string="Import another file" class="btn-secondary"
-                            invisible="state != 'done'"/>
-
-                    <button string="Close" class="btn-secondary" special="cancel"/>
-                </footer>
 
             </form>
         </field>
