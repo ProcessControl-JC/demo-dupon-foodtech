@@ -3,7 +3,7 @@
 
     <menuitem
         id="menu_solidedge_bom_import"
-        name="Import SolidEdge BOM"
+        name="Importar LdM SolidEdge"
         parent="mrp.menu_mrp_root"
         action="action_solidedge_bom_import_wizard"
         sequence="100"

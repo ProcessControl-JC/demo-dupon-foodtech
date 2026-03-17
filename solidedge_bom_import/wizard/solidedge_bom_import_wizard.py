@@ -10,62 +10,63 @@ from odoo.exceptions import UserError
 
 class SolidEdgeBomImportWizard(models.TransientModel):
     """
-    Multi-level BOM import wizard for CSV files exported from Siemens SolidEdge.
+    Asistente de importación de LdM multinivel para archivos CSV exportados desde SolidEdge.
 
-    Flow:
-      Step 1 (state=upload)   → user uploads CSV and sets options
-      Step 2 (state=preview)  → system parses and shows hierarchy preview + warnings
-      Step 3 (state=done)     → import runs; result summary shown
+    Flujo:
+      Paso 1 (state=upload)   → el usuario sube el CSV y configura opciones
+      Paso 2 (state=preview)  → el sistema parsea y muestra la jerarquía + avisos
+      Paso 3 (state=done)     → se ejecuta la importación; se muestra el resumen
     """
 
     _name = "solidedge.bom.import.wizard"
-    _description = "SolidEdge BOM Import Wizard"
+    _description = "Asistente de Importación de LdM SolidEdge"
 
     # -------------------------------------------------------------------------
-    # Fields
+    # Campos
     # -------------------------------------------------------------------------
 
     state = fields.Selection(
-        [("upload", "Upload"), ("preview", "Preview"), ("done", "Done")],
+        [("upload", "Subida"), ("preview", "Vista previa"), ("done", "Completado")],
         default="upload",
         required=True,
     )
 
-    file_data = fields.Binary("SolidEdge CSV File", required=True)
-    filename = fields.Char("Filename")
+    file_data = fields.Binary("Archivo CSV de SolidEdge", required=True)
+    filename = fields.Char("Nombre de archivo")
 
     overwrite = fields.Boolean(
-        "Overwrite existing product names",
+        "Sobrescribir nombres de productos existentes",
         default=False,
-        help="If enabled, product names in Odoo will be updated to match the "
-             "latest description from SolidEdge. Disabled by default (safe mode).",
+        help="Si está activado, los nombres de los productos en Odoo se actualizarán "
+             "para coincidir con la última descripción de SolidEdge. "
+             "Desactivado por defecto (modo seguro).",
     )
     dry_run = fields.Boolean(
-        "Validate only (no write)",
+        "Solo validar (sin guardar)",
         default=True,
-        help="Parse and preview the file without writing anything to the database. "
-             "Uncheck to perform the actual import.",
+        help="Analiza y previsualiza el archivo sin escribir nada en la base de datos. "
+             "Desmarca esta opción para realizar la importación real.",
     )
 
-    # Preview / result text fields (HTML)
-    preview_html = fields.Html("Preview", readonly=True)
-    result_html = fields.Html("Result", readonly=True)
+    # Campos HTML de vista previa / resultado
+    preview_html = fields.Html("Vista previa", readonly=True)
+    result_html = fields.Html("Resultado", readonly=True)
 
     # -------------------------------------------------------------------------
-    # Actions
+    # Acciones
     # -------------------------------------------------------------------------
 
     def action_parse_preview(self):
-        """Parse the uploaded file and move to the preview step."""
+        """Parsea el archivo subido y avanza al paso de vista previa."""
         self.ensure_one()
         rows = self._parse_file()
-        self._validate_hierarchy(rows)  # raises UserError on critical error
+        self._validate_hierarchy(rows)  # lanza UserError si hay error crítico
         preview_html = self._build_preview_html(rows)
         self.write({"state": "preview", "preview_html": preview_html})
         return self._reload_action()
 
     def action_import(self):
-        """Execute the import (or dry-run) and move to the done step."""
+        """Ejecuta la importación (o validación en seco) y avanza al paso final."""
         self.ensure_one()
         rows = self._parse_file()
         self._validate_hierarchy(rows)
@@ -81,30 +82,22 @@ class SolidEdgeBomImportWizard(models.TransientModel):
         return self._reload_action()
 
     def action_back(self):
-        """Go back to upload step."""
+        """Vuelve al paso de subida."""
         self.ensure_one()
         self.write({"state": "upload", "preview_html": False, "result_html": False})
         return self._reload_action()
 
     # -------------------------------------------------------------------------
-    # Parsing
+    # Parseo
     # -------------------------------------------------------------------------
 
     def _parse_file(self):
         """
-        Decode the uploaded binary, parse the SolidEdge CSV, and return a list
-        of row dicts.
-
-        SolidEdge CSV format:
-          - Encoding: UTF-8 with BOM  → open with 'utf-8-sig'
-          - Delimiter: semicolon (;)
-          - Row 1: metadata header (skip)
-          - Row 2: column headers
-          - Rows 3+: data rows
-          - Trailing semicolon on every row → last element after split is empty, discard it
+        Decodifica el binario subido, parsea el CSV de SolidEdge y devuelve
+        una lista de dicts de filas.
         """
         if not self.file_data:
-            raise UserError(_("Please upload a CSV file."))
+            raise UserError(_("Por favor, sube un archivo CSV."))
 
         raw = base64.b64decode(self.file_data)
         try:
@@ -114,7 +107,7 @@ class SolidEdgeBomImportWizard(models.TransientModel):
                 text = raw.decode("latin-1")
             except UnicodeDecodeError as e:
                 raise UserError(
-                    _("Could not decode the file. Expected UTF-8 or Latin-1 encoding. "
+                    _("No se pudo decodificar el archivo. Se esperaba codificación UTF-8 o Latin-1. "
                       "Error: %s") % str(e)
                 )
 
@@ -123,25 +116,19 @@ class SolidEdgeBomImportWizard(models.TransientModel):
 
         if len(all_rows) < 3:
             raise UserError(
-                _("The file does not contain enough rows. "
-                  "Expected: row 1 = metadata, row 2 = headers, row 3+ = data.")
+                _("El archivo no contiene suficientes filas. "
+                  "Se esperaba: fila 1 = metadatos, fila 2 = cabeceras, fila 3+ = datos.")
             )
 
-        # Row 0 (index 0): metadata — skip
-        # Row 1 (index 1): column headers
         header_row = [h.strip() for h in all_rows[1]]
-
-        # Map header names to column indices (resilient to column reorder)
         col_map = self._map_columns(header_row)
 
-        # Rows 2+ (index 2+): data
         rows = []
         for raw_row in all_rows[2:]:
-            # Discard trailing empty element caused by trailing semicolon
             if raw_row and raw_row[-1] == "":
                 raw_row = raw_row[:-1]
             if not any(raw_row):
-                continue  # skip blank lines
+                continue
 
             def get(col_name):
                 idx = col_map.get(col_name)
@@ -151,12 +138,12 @@ class SolidEdgeBomImportWizard(models.TransientModel):
 
             level_raw = get("level")
             if not level_raw:
-                continue  # skip rows without a level value
+                continue
 
             try:
                 level = int(level_raw.strip())
             except ValueError:
-                continue  # skip non-numeric level rows
+                continue
 
             rows.append(
                 {
@@ -166,19 +153,19 @@ class SolidEdgeBomImportWizard(models.TransientModel):
                     "description": get("description"),
                     "filename": get("filename"),
                     "quantity": get("quantity"),
-                    "has_children": False,  # populated by _validate_hierarchy
+                    "has_children": False,
                 }
             )
 
         if not rows:
-            raise UserError(_("No data rows found in the file."))
+            raise UserError(_("No se encontraron filas de datos en el archivo."))
 
         return rows
 
     def _map_columns(self, header_row):
         """
-        Map logical column names to their index positions in the header row.
-        Detection is by header name (case-insensitive, partial match), not position.
+        Mapea nombres lógicos de columnas a sus posiciones en la fila de cabecera.
+        Detección por nombre (sin distinguir mayúsculas, coincidencia parcial), no por posición.
         """
         mapping = {}
         keywords = {
@@ -202,27 +189,27 @@ class SolidEdgeBomImportWizard(models.TransientModel):
         missing = [k for k in required if k not in mapping]
         if missing:
             raise UserError(
-                _("Could not find required columns in the CSV header: %s\n"
-                  "Found headers: %s") % (", ".join(missing), ", ".join(header_row))
+                _("No se encontraron las columnas requeridas en la cabecera del CSV: %s\n"
+                  "Cabeceras encontradas: %s") % (", ".join(missing), ", ".join(header_row))
             )
         return mapping
 
     # -------------------------------------------------------------------------
-    # Hierarchy validation
+    # Validación de jerarquía
     # -------------------------------------------------------------------------
 
     def _validate_hierarchy(self, rows):
         """
-        Validate the level sequence and populate the has_children flag.
-        Raises UserError on critical structural errors (no data saved).
+        Valida la secuencia de niveles y rellena el flag has_children.
+        Lanza UserError en errores estructurales críticos (sin guardar datos).
         """
         if not rows:
-            raise UserError(_("No data rows to process."))
+            raise UserError(_("No hay filas de datos para procesar."))
 
         if rows[0]["level"] != 1:
             raise UserError(
-                _("The file must start with a Level 1 row (main assembly). "
-                  "First row found at level %d.") % rows[0]["level"]
+                _("El archivo debe comenzar con una fila de Nivel 1 (conjunto principal). "
+                  "Primera fila encontrada en el nivel %d.") % rows[0]["level"]
             )
 
         prev_level = 0
@@ -230,22 +217,21 @@ class SolidEdgeBomImportWizard(models.TransientModel):
             level = row["level"]
             if level > prev_level + 1:
                 raise UserError(
-                    _("Hierarchy Error at data row %d: jumped from level %d to level %d. "
-                      "Please check the SolidEdge export.") % (i + 3, prev_level, level)
+                    _("Error de jerarquía en la fila %d: salto del nivel %d al nivel %d. "
+                      "Comprueba el archivo exportado desde SolidEdge.") % (i + 3, prev_level, level)
                 )
-            # Mark the previous row as having children if current level is deeper
             if i > 0 and level > rows[i - 1]["level"]:
                 rows[i - 1]["has_children"] = True
             prev_level = level
 
     # -------------------------------------------------------------------------
-    # Core import logic
+    # Motor principal de importación
     # -------------------------------------------------------------------------
 
     def _process_rows(self, rows):
         """
-        Main import engine. Iterates rows using a parent stack to build the
-        BOM hierarchy. Returns a result dict with counters and warnings.
+        Motor principal de importación. Itera las filas usando una pila de padres
+        para construir la jerarquía de LdM. Devuelve un dict de resultado con contadores y avisos.
         """
         result = {
             "products_created": 0,
@@ -257,10 +243,7 @@ class SolidEdgeBomImportWizard(models.TransientModel):
             "bom_ids": [],
         }
 
-        # Track doc_number → product to detect conflicts within this import run
         seen_doc_numbers = {}
-
-        # stack: { level_int: (product_record, bom_record_or_None) }
         stack = {}
 
         for i, row in enumerate(rows):
@@ -271,29 +254,25 @@ class SolidEdgeBomImportWizard(models.TransientModel):
             asunto = row["asunto"]
             qty_raw = row["quantity"]
 
-            # Resolve unique key
             key = self._resolve_unique_key(doc_number, filename)
             if not key:
                 result["warnings"].append(
-                    _("Row %d: both doc_number and filename are empty — row skipped.") % (i + 3)
+                    _("Fila %d: número de documento y nombre de archivo vacíos — fila omitida.") % (i + 3)
                 )
                 continue
 
-            # Resolve description
             if not description or description == "-":
                 description = os.path.splitext(filename)[0] if filename else key
 
-            # Detect duplicate doc_number with different description
             if doc_number:
                 if doc_number in seen_doc_numbers:
                     prev_desc = seen_doc_numbers[doc_number]
                     if prev_desc != description:
                         result["warnings"].append(
-                            _("Row %d: doc_number '%s' already seen with different description "
-                              "('%s' vs '%s'). Using first occurrence.")
+                            _("Fila %d: número de documento '%s' ya visto con descripción diferente "
+                              "('%s' vs '%s'). Se usa la primera ocurrencia.")
                             % (i + 3, doc_number, prev_desc, description)
                         )
-                        # Use the already-created product for this key
                         product = self.env["product.product"].search(
                             [("default_code", "=", key)], limit=1
                         )
@@ -301,7 +280,6 @@ class SolidEdgeBomImportWizard(models.TransientModel):
                             product, created = self._get_or_create_product(
                                 key, description, asunto, filename, result
                             )
-                        # Add to parent BOM if not at level 1
                         if level > 1 and (level - 1) in stack:
                             _parent_prod, parent_bom = stack[level - 1]
                             if parent_bom:
@@ -311,10 +289,8 @@ class SolidEdgeBomImportWizard(models.TransientModel):
                         continue
                 seen_doc_numbers[doc_number] = description
 
-            # Resolve quantity
             qty = self._parse_qty(qty_raw, i, result)
 
-            # Get or create product
             product, created = self._get_or_create_product(
                 key, description, asunto, filename, result
             )
@@ -326,13 +302,12 @@ class SolidEdgeBomImportWizard(models.TransientModel):
                     result["products_updated"] += 1
 
             if level == 1:
-                # Root assembly — always creates a BOM
                 bom = self._get_or_create_bom(product, result)
                 stack = {1: (product, bom)}
             else:
                 if (level - 1) not in stack:
                     result["warnings"].append(
-                        _("Row %d: no parent found for level %d (key='%s') — row skipped.")
+                        _("Fila %d: no se encontró padre para el nivel %d (clave='%s') — fila omitida.")
                         % (i + 3, level, key)
                     )
                     continue
@@ -345,10 +320,8 @@ class SolidEdgeBomImportWizard(models.TransientModel):
                     sub_bom = self._get_or_create_bom(product, result)
                     stack[level] = (product, sub_bom)
                 else:
-                    # Leaf component — no BOM needed, route: Buy
                     self._ensure_buy_route(product)
                     stack[level] = (product, None)
-                    # Clear deeper levels from stack (backtrack)
                     for lvl in list(stack.keys()):
                         if lvl > level:
                             del stack[lvl]
@@ -356,13 +329,13 @@ class SolidEdgeBomImportWizard(models.TransientModel):
         return result
 
     # -------------------------------------------------------------------------
-    # Product helpers
+    # Helpers de producto
     # -------------------------------------------------------------------------
 
     def _get_or_create_product(self, key, description, asunto, filename, result):
         """
-        Find an existing product by default_code or create a new one.
-        Returns (product_record, was_created).
+        Busca un producto existente por default_code o crea uno nuevo.
+        Devuelve (registro_producto, fue_creado).
         """
         Product = self.env["product.product"]
         product = Product.search([("default_code", "=", key)], limit=1)
@@ -385,10 +358,8 @@ class SolidEdgeBomImportWizard(models.TransientModel):
         }
 
         product = Product.create(vals)
-        # Set uom_po_id if the field exists (Odoo 16/17); removed in Odoo 19
         if "uom_po_id" in self.env["product.template"]._fields:
             product.product_tmpl_id.write({"uom_po_id": uom.id})
-        # Set custom SolidEdge fields if they exist on the template
         tmpl_fields = self.env["product.template"]._fields
         tmpl_vals = {}
         if filename and "x_solidedge_file" in tmpl_fields:
@@ -400,19 +371,19 @@ class SolidEdgeBomImportWizard(models.TransientModel):
         return product, True
 
     def _ensure_buy_route(self, product):
-        """Set the Buy route on a leaf product (no BOM → purchaseable component)."""
+        """Asigna la ruta Comprar a un producto hoja (sin LdM → componente a comprar)."""
         buy_route = self.env.ref("purchase_stock.route_warehouse0_buy", raise_if_not_found=False)
         if buy_route and buy_route not in product.product_tmpl_id.route_ids:
             product.product_tmpl_id.write({"route_ids": [(4, buy_route.id)]})
 
     # -------------------------------------------------------------------------
-    # BOM helpers
+    # Helpers de LdM
     # -------------------------------------------------------------------------
 
     def _get_or_create_bom(self, product, result):
         """
-        Find an existing BOM for the product or create a new one.
-        Sets type='normal' and route=Manufacture.
+        Busca una LdM existente para el producto o crea una nueva.
+        Establece type='normal' y ruta=Fabricar.
         """
         Bom = self.env["mrp.bom"]
         bom = Bom.search(
@@ -442,9 +413,9 @@ class SolidEdgeBomImportWizard(models.TransientModel):
 
     def _add_bom_line(self, bom, component_product, qty, result):
         """
-        Add a component line to a BOM.
-        If the same product already exists on the BOM, update the quantity
-        instead of creating a duplicate.
+        Añade una línea de componente a una LdM.
+        Si el mismo producto ya existe en la LdM, actualiza la cantidad
+        en lugar de crear un duplicado.
         """
         BomLine = self.env["mrp.bom.line"]
         existing = bom.bom_line_ids.filtered(
@@ -465,15 +436,15 @@ class SolidEdgeBomImportWizard(models.TransientModel):
             result["bom_lines_added"] += 1
 
     # -------------------------------------------------------------------------
-    # Utility helpers
+    # Helpers de utilidad
     # -------------------------------------------------------------------------
 
     @staticmethod
     def _resolve_unique_key(doc_number, filename):
         """
-        Returns the unique identifier for a row:
-          - Primary: doc_number (stripped)
-          - Fallback: filename without extension, sanitized
+        Devuelve el identificador único para una fila:
+          - Principal: doc_number (sin espacios)
+          - Alternativo: nombre de archivo sin extensión, saneado
         """
         key = (doc_number or "").strip()
         if not key:
@@ -483,22 +454,22 @@ class SolidEdgeBomImportWizard(models.TransientModel):
 
     @staticmethod
     def _parse_qty(raw, row_index, result):
-        """Parse quantity string; defaults to 1.0 and logs a warning on failure."""
+        """Parsea la cadena de cantidad; por defecto 1.0 y registra un aviso si falla."""
         try:
             val = float((raw or "1").replace(",", "."))
             return val if val > 0 else 1.0
         except ValueError:
             result["warnings"].append(
-                _("Row %d: invalid quantity '%s' — defaulting to 1.") % (row_index + 3, raw)
+                _("Fila %d: cantidad '%s' no válida — se usa 1 por defecto.") % (row_index + 3, raw)
             )
             return 1.0
 
     # -------------------------------------------------------------------------
-    # HTML builders
+    # Constructores HTML
     # -------------------------------------------------------------------------
 
     def _build_preview_html(self, rows):
-        """Build the hierarchy preview shown before the actual import."""
+        """Construye la vista previa de jerarquía mostrada antes de la importación real."""
         warnings = []
         seen = {}
         lines = []
@@ -511,16 +482,16 @@ class SolidEdgeBomImportWizard(models.TransientModel):
             qty_raw = row["quantity"]
 
             indent = "&nbsp;" * (level - 1) * 4
-            node_type = "SUB-ASSEMBLY" if row["has_children"] else ("ROOT" if level == 1 else "LEAF")
+            node_type = "SUBCONJUNTO" if row["has_children"] else ("RAÍZ" if level == 1 else "COMPONENTE")
             color = "#0066cc" if level == 1 else ("#28a745" if row["has_children"] else "#555")
 
             if not row["doc_number"]:
                 warnings.append(
-                    "Row %d: No document number — using filename as key ('%s')." % (i + 3, key)
+                    "Fila %d: Sin número de documento — se usa el nombre de archivo como clave ('%s')." % (i + 3, key)
                 )
             if row["doc_number"] and row["doc_number"] in seen and seen[row["doc_number"]] != desc:
                 warnings.append(
-                    "Row %d: Duplicate doc# '%s' with different description (conflict)."
+                    "Fila %d: Número de doc '%s' duplicado con descripción diferente (conflicto)."
                     % (i + 3, row["doc_number"])
                 )
             if row["doc_number"]:
@@ -528,81 +499,81 @@ class SolidEdgeBomImportWizard(models.TransientModel):
 
             lines.append(
                 '<div style="font-family:monospace;font-size:13px;">'
-                f'{indent}<span style="color:{color};">[L{level}] {key}</span>'
-                f' — {desc} <small>[QTY:{qty_raw}] [{node_type}]</small>'
+                f'{indent}<span style="color:{color};">[N{level}] {key}</span>'
+                f' — {desc} <small>[CANT:{qty_raw}] [{node_type}]</small>'
                 "</div>"
             )
 
         stats_html = (
-            f"<p><strong>Rows parsed:</strong> {len(rows)} &nbsp;|&nbsp; "
-            f"<strong>Warnings:</strong> {len(warnings)}</p>"
+            f"<p><strong>Filas procesadas:</strong> {len(rows)} &nbsp;|&nbsp; "
+            f"<strong>Avisos:</strong> {len(warnings)}</p>"
         )
         tree_html = "".join(lines)
         warn_html = ""
         if warnings:
             warn_items = "".join(f"<li>{w}</li>" for w in warnings)
-            warn_html = f"<h4 style='color:#e67e22;'>Warnings ({len(warnings)})</h4><ul>{warn_items}</ul>"
+            warn_html = f"<h4 style='color:#e67e22;'>Avisos ({len(warnings)})</h4><ul>{warn_items}</ul>"
 
         return (
-            "<h3>Hierarchy Preview</h3>"
+            "<h3>Vista previa de jerarquía</h3>"
             + stats_html
             + "<hr/>"
             + tree_html
             + "<hr/>"
-            + (warn_html or "<p style='color:green;'>No warnings.</p>")
+            + (warn_html or "<p style='color:green;'>Sin avisos.</p>")
         )
 
     def _build_dryrun_html(self, rows):
-        """Build a dry-run result message (no writes performed)."""
+        """Construye el mensaje de resultado de validación en seco (sin escrituras)."""
         level_counts = {}
         for row in rows:
             level_counts[row["level"]] = level_counts.get(row["level"], 0) + 1
         level_summary = ", ".join(
-            f"L{k}: {v} rows" for k, v in sorted(level_counts.items())
+            f"N{k}: {v} filas" for k, v in sorted(level_counts.items())
         )
         return (
-            "<h3>Dry Run — No changes saved</h3>"
-            f"<p>{len(rows)} rows parsed successfully. {level_summary}.</p>"
-            "<p style='color:#28a745;'>Validation passed. "
-            "Uncheck <strong>Validate only</strong> and click <strong>Import</strong> "
-            "to perform the actual import.</p>"
+            "<h3>Validación — Sin cambios guardados</h3>"
+            f"<p>{len(rows)} filas procesadas correctamente. {level_summary}.</p>"
+            "<p style='color:#28a745;'>Validación correcta. "
+            "Desmarca <strong>Solo validar</strong> y pulsa <strong>Importar</strong> "
+            "para realizar la importación real.</p>"
         )
 
     def _build_result_html(self, result):
-        """Build the result summary shown after a successful import."""
+        """Construye el resumen de resultado mostrado tras una importación exitosa."""
         warn_items = "".join(
             f"<li>{w}</li>" for w in result.get("warnings", [])
         )
         warn_block = (
-            f"<h4 style='color:#e67e22;'>Warnings ({len(result['warnings'])})</h4>"
+            f"<h4 style='color:#e67e22;'>Avisos ({len(result['warnings'])})</h4>"
             f"<ul>{warn_items}</ul>"
             if result.get("warnings")
-            else "<p style='color:green;'>No warnings.</p>"
+            else "<p style='color:green;'>Sin avisos.</p>"
         )
         bom_button = ""
         if result.get("bom_ids"):
             ids_str = ",".join(str(i) for i in set(result["bom_ids"]))
             bom_button = (
                 f"<p><a href='/odoo/manufacturing/bom?ids={ids_str}' target='_blank'>"
-                "View created/updated BOMs →</a></p>"
+                "Ver LdM creadas/actualizadas \u2192</a></p>"
             )
         return (
-            "<h3>Import Complete</h3>"
-            f"<p><strong>Products created:</strong> {result['products_created']}</p>"
-            f"<p><strong>Products updated (name):</strong> {result['products_updated']}</p>"
-            f"<p><strong>BOMs created:</strong> {result['boms_created']}</p>"
-            f"<p><strong>BOM lines added:</strong> {result['bom_lines_added']}</p>"
-            f"<p><strong>BOM lines updated (qty):</strong> {result['bom_lines_updated']}</p>"
+            "<h3>Importación completada</h3>"
+            f"<p><strong>Productos creados:</strong> {result['products_created']}</p>"
+            f"<p><strong>Productos actualizados (nombre):</strong> {result['products_updated']}</p>"
+            f"<p><strong>LdM creadas:</strong> {result['boms_created']}</p>"
+            f"<p><strong>Líneas de LdM añadidas:</strong> {result['bom_lines_added']}</p>"
+            f"<p><strong>Líneas de LdM actualizadas (cant.):</strong> {result['bom_lines_updated']}</p>"
             + warn_block
             + bom_button
         )
 
     # -------------------------------------------------------------------------
-    # Internal
+    # Interno
     # -------------------------------------------------------------------------
 
     def _reload_action(self):
-        """Return an action that reopens this wizard record."""
+        """Devuelve una acción que reabre este registro del asistente."""
         return {
             "type": "ir.actions.act_window",
             "res_model": self._name,
