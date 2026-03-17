@@ -2,7 +2,7 @@
 <odoo noupdate="1">
 
     <record id="product_categ_solidedge" model="product.category">
-        <field name="name">SolidEdge Imports</field>
+        <field name="name">Importaciones SolidEdge</field>
     </record>
 
 </odoo>
