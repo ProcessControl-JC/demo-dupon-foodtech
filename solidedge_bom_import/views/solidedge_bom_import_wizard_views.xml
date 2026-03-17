@@ -5,66 +5,65 @@
         <field name="name">solidedge.bom.import.wizard.form</field>
         <field name="model">solidedge.bom.import.wizard</field>
         <field name="arch" type="xml">
-            <form string="Import SolidEdge BOM">
+            <form string="Importar LdM SolidEdge">
 
                 <header>
                     <button name="action_parse_preview" type="object"
-                            string="Validate" class="btn-primary"
+                            string="Validar" class="btn-primary"
                             invisible="state != 'upload'"/>
                     <button name="action_import" type="object"
-                            string="Import" class="btn-primary"
+                            string="Importar" class="btn-primary"
                             invisible="state != 'preview'"/>
                     <button name="action_back" type="object"
-                            string="← Back" class="btn-secondary"
+                            string="&#8592; Atrás" class="btn-secondary"
                             invisible="state != 'preview'"/>
                     <button name="action_back" type="object"
-                            string="Import another file" class="btn-secondary"
+                            string="Importar otro archivo" class="btn-secondary"
                             invisible="state != 'done'"/>
-                    <button string="Close" class="btn-secondary" special="cancel"
+                    <button string="Cerrar" class="btn-secondary" special="cancel"
                             invisible="state == 'done'"/>
                     <field name="state" widget="statusbar"
                            statusbar_visible="upload,preview,done"/>
                 </header>
 
-                <!-- STEP 1: Upload -->
+                <!-- PASO 1: Subida -->
                 <group invisible="state != 'upload'">
-                    <group string="File">
+                    <group string="Archivo">
                         <field name="file_data" filename="filename" widget="binary"
-                               string="SolidEdge CSV File"/>
+                               string="Archivo CSV de SolidEdge"/>
                         <field name="filename" invisible="1"/>
                     </group>
-                    <group string="Options">
+                    <group string="Opciones">
                         <field name="dry_run"/>
                         <field name="overwrite"/>
                     </group>
                 </group>
 
-                <!-- STEP 2: Preview -->
+                <!-- PASO 2: Vista previa -->
                 <group invisible="state != 'preview'">
                     <field name="preview_html" widget="html" nolabel="1"
                            readonly="1" colspan="2"/>
-                    <group string="Options (review before importing)">
+                    <group string="Opciones (revisar antes de importar)">
                         <field name="dry_run"/>
                         <field name="overwrite"/>
                     </group>
                 </group>
 
-                <!-- STEP 3: Done -->
+                <!-- PASO 3: Completado -->
                 <group invisible="state != 'done'">
                     <field name="result_html" widget="html" nolabel="1"
                            readonly="1" colspan="2"/>
                 </group>
 
-                <!-- Hidden state field -->
+                <!-- Campo state oculto -->
                 <field name="state" invisible="1"/>
-
 
             </form>
         </field>
     </record>
 
     <record id="action_solidedge_bom_import_wizard" model="ir.actions.act_window">
-        <field name="name">Import SolidEdge BOM</field>
+        <field name="name">Importar LdM SolidEdge</field>
         <field name="res_model">solidedge.bom.import.wizard</field>
         <field name="view_mode">form</field>
         <field name="target">current</field>
