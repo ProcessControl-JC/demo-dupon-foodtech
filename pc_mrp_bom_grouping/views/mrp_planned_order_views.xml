@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Inherit list view: add Subassembly column -->
+    <record id="mrp_planned_order_view_list_bom" model="ir.ui.view">
+        <field name="name">mrp.planned.order.list.bom</field>
+        <field name="model">mrp.planned.order</field>
+        <field name="inherit_id" ref="mrp_multi_level.mrp_planned_order_view_list"/>
+        <field name="arch" type="xml">
+            <field name="product_id" position="before">
+                <field name="parent_assembly_id" optional="show"/>
+            </field>
+        </field>
+    </record>
+
+    <!-- Inherit search view: add Group by Subassembly -->
+    <record id="mrp_planned_order_view_search_bom" model="ir.ui.view">
+        <field name="name">mrp.planned.order.search.bom</field>
+        <field name="model">mrp.planned.order</field>
+        <field name="inherit_id" ref="mrp_multi_level.mrp_planned_order_view_search"/>
+        <field name="arch" type="xml">
+            <filter name="product_parameters" position="before">
+                <filter
+                    name="parent_assembly"
+                    string="Subassembly"
+                    domain="[]"
+                    context="{'group_by': 'parent_assembly_id'}"
+                />
+            </filter>
+        </field>
+    </record>
+
+</odoo>
