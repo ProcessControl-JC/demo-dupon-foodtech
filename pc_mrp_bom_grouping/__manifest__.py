@@ -9,4 +9,5 @@
         "views/mrp_planned_order_views.xml",
     ],
     "installable": True,
+    "auto_install": True,
 }
