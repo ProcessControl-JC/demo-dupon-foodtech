@@ -7,7 +7,7 @@
     "depends": ["mrp_multi_level"],
     "data": [
         "views/mrp_planned_order_views.xml",
+        "views/mrp_inventory_views.xml",
     ],
     "installable": True,
-    "auto_install": True,
 }
