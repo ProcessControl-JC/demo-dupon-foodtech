@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+
+    <!-- Vista del wizard -->
+    <record id="crm_lead_create_task_view_form" model="ir.ui.view">
+        <field name="name">crm.lead.create.task.form</field>
+        <field name="model">crm.lead.create.task</field>
+        <field name="arch" type="xml">
+            <form string="Crear tarea desde plantilla de presupuesto">
+                <group string="Plantilla de presupuesto">
+                    <field name="lead_id" invisible="1"/>
+                    <field name="template_id"
+                           options="{'no_create': True, 'no_create_edit': True}"
+                           placeholder="Selecciona una plantilla de presupuesto..."/>
+                    <field name="include_template_lines"/>
+                </group>
+
+                <group string="Líneas de la plantilla"
+                       invisible="not template_id or not include_template_lines">
+                    <field name="template_line_ids"
+                           nolabel="1"
+                           readonly="1"
+                           widget="many2many_tags"/>
+                </group>
+
+                <group string="Datos de la tarea">
+                    <group>
+                        <field name="task_name" placeholder="Nombre de la tarea"/>
+                        <field name="project_id"
+                               options="{'no_create': True}"
+                               placeholder="Selecciona un proyecto..."/>
+                        <field name="partner_id"/>
+                        <field name="date_deadline"/>
+                    </group>
+                    <group>
+                        <field name="user_ids" widget="many2many_tags"/>
+                        <field name="tag_ids" widget="many2many_tags"
+                               options="{'no_create_edit': True}"/>
+                    </group>
+                </group>
+
+                <group string="Descripción adicional">
+                    <field name="description" nolabel="1" widget="html"/>
+                </group>
+
+                <footer>
+                    <button type="object"
+                            name="action_create_task"
+                            string="Crear tarea"
+                            class="btn-primary"
+                            data-hotkey="q"/>
+                    <button string="Descartar"
+                            class="btn-secondary"
+                            special="cancel"
+                            data-hotkey="x"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- Acción que abre el wizard -->
+    <record id="crm_lead_create_task_action" model="ir.actions.act_window">
+        <field name="name">Crear tarea desde plantilla</field>
+        <field name="res_model">crm.lead.create.task</field>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="crm_lead_create_task_view_form"/>
+        <field name="target">new</field>
+        <field name="binding_model_id" ref="crm.model_crm_lead"/>
+        <field name="binding_view_types">form</field>
+    </record>
+
+</odoo>

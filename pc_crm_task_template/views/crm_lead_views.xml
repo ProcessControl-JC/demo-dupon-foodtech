@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+
+    <!-- Botón en el formulario del lead/oportunidad -->
+    <record id="crm_lead_view_form_task_template" model="ir.ui.view">
+        <field name="name">crm.lead.form.task.template</field>
+        <field name="model">crm.lead</field>
+        <field name="inherit_id" ref="crm.crm_lead_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="/form/header/button[last()]" position="after">
+                <button class="btn btn-secondary"
+                        type="action"
+                        name="%(crm_lead_create_task_action)d"
+                        string="Crear tarea"
+                        invisible="not active"
+                        icon="fa-tasks"
+                        data-hotkey="t"/>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>
